@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getBaseUrl } from "@/lib/url";
 
 async function signIn(formData: FormData) {
   "use server";
@@ -10,10 +11,11 @@ async function signIn(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const baseUrl = await getBaseUrl();
   await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      emailRedirectTo: `${baseUrl}/auth/callback`,
     },
   });
 
@@ -45,4 +47,3 @@ export default function LoginPage() {
     </main>
   );
 }
-
