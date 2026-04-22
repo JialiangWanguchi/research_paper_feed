@@ -1,25 +1,49 @@
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getBaseUrl } from "@/lib/url";
+import { LoginForm } from "@/components/login-form";
 
-async function signIn(formData: FormData) {
+type LoginState = {
+  error: string | null;
+  success: string | null;
+};
+
+async function signIn(_: LoginState, formData: FormData): Promise<LoginState> {
   "use server";
 
   const email = String(formData.get("email") ?? "").trim();
   if (!email) {
-    return;
+    return {
+      error: "Enter an email address first.",
+      success: null,
+    };
   }
 
   const supabase = await createClient();
   const baseUrl = await getBaseUrl();
-  await supabase.auth.signInWithOtp({
+  const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
       emailRedirectTo: `${baseUrl}/auth/callback`,
     },
   });
 
-  redirect("/");
+  if (error) {
+    const normalized = error.message.toLowerCase();
+    const helpMessage =
+      normalized.includes("redirect") || normalized.includes("email")
+        ? `${error.message} Check Supabase Auth email settings and allowed redirect URLs.`
+        : error.message;
+
+    return {
+      error: helpMessage,
+      success: null,
+    };
+  }
+
+  return {
+    error: null,
+    success: "Magic link sent. Check your inbox and spam folder.",
+  };
 }
 
 export default function LoginPage() {
@@ -31,18 +55,7 @@ export default function LoginPage() {
         <p className="mt-3 text-sm text-black/70">
           Supabase magic-link auth is the minimal path for this assignment.
         </p>
-        <form action={signIn} className="mt-8 space-y-4">
-          <input
-            type="email"
-            name="email"
-            placeholder="you@example.com"
-            className="w-full rounded-2xl border border-black/15 bg-sand px-4 py-3 outline-none"
-            required
-          />
-          <button className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-white">
-            Send magic link
-          </button>
-        </form>
+        <LoginForm action={signIn} />
       </div>
     </main>
   );
