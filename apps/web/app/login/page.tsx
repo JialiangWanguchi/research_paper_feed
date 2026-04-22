@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LoginForm } from "@/components/login-form";
+import { getBaseUrl } from "@/lib/url";
 
 type LoginState = {
   error: string | null;
@@ -61,9 +62,13 @@ async function signUpWithPassword(_: LoginState, formData: FormData): Promise<Lo
   }
 
   const supabase = await createClient();
+  const baseUrl = await getBaseUrl();
   const { data, error } = await supabase.auth.signUp({
     email: credentials.email,
     password: credentials.password,
+    options: {
+      emailRedirectTo: `${baseUrl}/auth/callback`,
+    },
   });
 
   if (error) {
